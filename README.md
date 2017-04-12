@@ -3,6 +3,10 @@
 [![Build Status](https://travis-ci.org/fchollet/keras.svg?branch=master)](https://travis-ci.org/fchollet/keras)
 [![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](https://github.com/fchollet/keras/blob/master/LICENSE)
 
+## Comments by Prince
+
+This repository is comment in Chinese by [prince](princewang1994@gmail.com) just for learning implementation of Keras -- a high availability deep learning framework based on `Tensorflow` and `Theano`. Keras is a uniform interface of tf and th. Many Deep Learning tricks will be demostrated during process of implementation. So it really worth for reading.
+
 ## You have just found Keras.
 
 Keras is a high-level neural networks API, written in Python and capable of running on top of either [TensorFlow](https://github.com/tensorflow/tensorflow) or [Theano](https://github.com/Theano/Theano). It was developed with a focus on enabling fast experimentation. *Being able to go from idea to result with the least possible delay is key to doing good research.*
