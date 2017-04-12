@@ -24,7 +24,7 @@ if K.backend() == 'tensorflow':
     import tensorflow as tf
     from tensorflow.contrib.tensorboard.plugins import projector
 
-
+# 这个类作为Callback的容器，负责调用callbacks
 class CallbackList(object):
     """Container abstracting a list of callbacks.
 
@@ -34,7 +34,7 @@ class CallbackList(object):
             running statistics over callback execution time.
     """
 
-    def __init__(self, callbacks=None, queue_length=10):
+    def __init__(self, callbacks=None, queue_length=10): #使用callbacks列表进行初始化
         callbacks = callbacks or []
         self.callbacks = [c for c in callbacks]
         self.queue_length = queue_length

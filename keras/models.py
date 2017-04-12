@@ -30,11 +30,12 @@ except ImportError:
 def save_model(model, filepath, overwrite=True, include_optimizer=True):
     """Save a model to a HDF5 file.
 
+    **存下来的东西有：
     The saved model contains:
         - the model's configuration (topology)
         - the model's weights
         - the model's optimizer's state (if any)
-
+    ***这些全部放在h5文件中
     Thus the saved model can be reinstantiated in
     the exact same state, without any of the code
     used for model definition or training.
@@ -54,6 +55,10 @@ def save_model(model, filepath, overwrite=True, include_optimizer=True):
     if h5py is None:
         raise ImportError('`save_model` requires h5py.')
 
+    # 知识点：使用json.dumps()存储class的时候会报错 `is not JSON seriliziable`
+    # 需要使用default关键字
+    # json.dumps(obj, default=func)
+    # 其中，func是指定将obj转换为可序列化对象的方法，get_json_type(obj)就是这个func
     def get_json_type(obj):
         """Serialize any object to a JSON-serializable structure.
 
@@ -66,6 +71,9 @@ def save_model(model, filepath, overwrite=True, include_optimizer=True):
         # Raises
             TypeError: if `obj` cannot be serialized.
         """
+        # 所有可以序列化的成Config的对象，都有get_config函数
+        # 这个函数可以将结构转换为config序列化
+        # 如layer， optimizer
         # if obj is a serializable Keras class instance
         # e.g. optimizer, layer
         if hasattr(obj, 'get_config'):
@@ -100,7 +108,7 @@ def save_model(model, filepath, overwrite=True, include_optimizer=True):
     f.attrs['model_config'] = json.dumps({
         'class_name': model.__class__.__name__,
         'config': model.get_config()
-    }, default=get_json_type).encode('utf8')
+    }, default=get_json_type).encode('utf8')  # 这里使用json把当前model存成字符串，是一种序列化方式
 
     model_weights_group = f.create_group('model_weights')
     if legacy_models.needs_legacy_support(model):
@@ -233,11 +241,11 @@ def load_model(filepath, custom_objects=None):
     f = h5py.File(filepath, mode='r')
 
     # instantiate model
-    model_config = f.attrs.get('model_config')
+    model_config = f.attrs.get('model_config')  # 拿出存进去的json config
     if model_config is None:
         raise ValueError('No model found in config file.')
-    model_config = json.loads(model_config.decode('utf-8'))
-    model = model_from_config(model_config, custom_objects=custom_objects)
+    model_config = json.loads(model_config.decode('utf-8'))  # utf8解码
+    model = model_from_config(model_config, custom_objects=custom_objects)  # 把Json转换为对象
 
     # set weights
     topology.load_weights_from_hdf5_group(f['model_weights'], model.layers)
@@ -281,7 +289,10 @@ def load_model(filepath, custom_objects=None):
     f.close()
     return model
 
-
+'''
+    Model的存储方式其实是把config配置存到json中，
+    然后通过model_from_config进行重构
+'''
 def model_from_config(config, custom_objects=None):
     """Instantiates a Keras model from its config.
 
@@ -295,7 +306,7 @@ def model_from_config(config, custom_objects=None):
         A Keras model instance (uncompiled).
     """
     if isinstance(config, list):
-        raise TypeError('`model_fom_config` expects a dictionary, not a list. '
+        raise TypeError('`model_from_config` expects a dictionary, not a list. '
                         'Maybe you meant to use '
                         '`Sequential.from_config(config)`?')
     return layer_module.deserialize(config, custom_objects=custom_objects)

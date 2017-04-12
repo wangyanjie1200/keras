@@ -1190,7 +1190,23 @@ class Layer(object):
         if hasattr(self, 'dtype'):
             config['dtype'] = self.dtype
         return config
-
+    '''
+        from_config是有dict转换为object的方法，
+        只通过config={'key' : value}的形式就可以调用
+        Layer类是一切具体Layer, (如BN, Dense, Conv2D)的公共父类
+        每个Layer对象都可以直接通过from_config构造一个对象
+        举例：
+            BatchNormal层可以通过调用
+                BatchNormal(axis)
+            构造，也可以使用
+                config = {'axis' : axis}
+                BatchNormal(config)
+            来调用，这个特征是cls(**config)赋予的。
+        实例化过程：
+            Layer对象通过调用get_config来获取config, 可以用于save_model, 从而，在load_model的时候，可以直接取出来构造，
+            因为from_config 和 get_config 是一一对应的反向函数
+            
+    '''
     @classmethod
     def from_config(cls, config):
         """Creates a layer from its config.
@@ -2711,8 +2727,8 @@ def save_weights_to_hdf5_group(f, layers):
 
     for layer in layers:
         g = f.create_group(layer.name)
-        symbolic_weights = layer.weights
-        weight_values = K.batch_get_value(symbolic_weights)
+        symbolic_weights = layer.weights # 获取一个tf.Variable数组
+        weight_values = K.batch_get_value(symbolic_weights) # 传入Variable数组，获取数组的所有变量值
         weight_names = []
         for i, (w, val) in enumerate(zip(symbolic_weights, weight_values)):
             if hasattr(w, 'name') and w.name:

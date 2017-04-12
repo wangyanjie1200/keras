@@ -24,7 +24,9 @@ def serialize(layer):
     return {'class_name': layer.__class__.__name__,
             'config': layer.get_config()}
 
-
+'''
+    此函数使用config实例化layer
+'''
 def deserialize(config, custom_objects=None):
     """Instantiate a layer from a config dictionary.
 
