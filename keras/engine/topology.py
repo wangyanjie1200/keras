@@ -2887,6 +2887,7 @@ def load_weights_from_hdf5_group(f, layers):
         if weights:
             filtered_layers.append(layer)
 
+    # f.attr['layer_name']这是一个数组，**按顺序**记录了存进去的时候的层的拓扑结构
     layer_names = [n.decode('utf8') for n in f.attrs['layer_names']]
     filtered_layer_names = []
     for name in layer_names:
@@ -2903,8 +2904,10 @@ def load_weights_from_hdf5_group(f, layers):
 
     # We batch weight value assignments in a single backend call
     # which provides a speedup in TensorFlow.
+    # 注意这里使用了enumerate，layer_names是从f，也就是hdf5文件里面拿出来的，没有涉及模型本身的name
+    # 因此，与模型本身的名字无关，只与layer的顺序有关
     weight_value_tuples = []
-    for k, name in enumerate(layer_names):
+    for k, name in enumerate(layer_names): # k代表了在model中的index
         g = f[name]
         weight_names = [n.decode('utf8') for n in g.attrs['weight_names']]
         weight_values = [g[weight_name] for weight_name in weight_names]

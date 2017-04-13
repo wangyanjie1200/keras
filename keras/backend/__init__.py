@@ -12,6 +12,54 @@ from .common import image_data_format
 from .common import set_image_data_format
 from .common import is_keras_tensor
 
+'''
+    通过读取
+        - 配置文件 .keras.json
+        - 环境变量 KERAS_BACKEND='tensorflow' 或 KERAS_BACKEND='theano'
+    来决定使用哪种backend
+    最后，使用
+    ```python
+        if _BACKEND == 'theano':
+            sys.stderr.write('Using Theano backend.\n')
+            from .theano_backend import *
+        elif _BACKEND == 'tensorflow':
+            sys.stderr.write('Using TensorFlow backend.\n')
+            from .tensorflow_backend import *
+        else:
+            raise ValueError('Unknown backend: ' + str(_BACKEND))
+    ```
+    来引用backend中的函数和类。这两个文件分别位于backend包中的tensorflow_backend.py和theano_backend.py中
+    
+    这两个文件中的函数大致相同。
+    
+    这里有一个小技巧（知识点）:
+        python的__init__.py函数有几个作用
+        - 若文件夹中有此文件（内容可以为空），那么这个目录被定义为一个python package
+        - 在 `__init__.py`中，可以定义一些package level的变量或者像本package中引入某些变量
+        __init__.py被调用的时机：
+        当执行代码 
+        ```
+            import pack
+        ``` 或 
+        ``` 
+            from pack import module 
+        ```
+        或 
+        ```
+            from pack.module import object
+        ```
+        的时候，都会首先调用调用 `pack/__init__.py`，此时，可以向pack中注入变量（就像Keras在这个包中做的一样)，
+        通过在`pack/__init__.py`中 
+        ```
+            from some.module import obj 
+        ``` 
+        可以把对象注入package层，从而被引用的变量可以通过使用
+        ```
+            import pack as P
+            call(P.obj)
+        ```
+        来使用该对象，**注意**，该对象已经被引入到package层面了
+'''
 # Obtain Keras base dir path: either ~/.keras or /tmp.
 _keras_base_dir = os.path.expanduser('~')
 if not os.access(_keras_base_dir, os.W_OK):
@@ -22,6 +70,7 @@ _keras_dir = os.path.join(_keras_base_dir, '.keras')
 _BACKEND = 'tensorflow'
 
 # Attempt to read Keras config file.
+# 配置文件读取backend
 _config_path = os.path.expanduser(os.path.join(_keras_dir, 'keras.json'))
 if os.path.exists(_config_path):
     try:
@@ -66,6 +115,7 @@ if 'KERAS_BACKEND' in os.environ:
 
 # Import backend functions.
 if _BACKEND == 'theano':
+    # 这里打印出正在使用的Backend，不知道为什么要用sys.stderr.write，可能是比较明显吧
     sys.stderr.write('Using Theano backend.\n')
     from .theano_backend import *
 elif _BACKEND == 'tensorflow':
