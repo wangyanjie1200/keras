@@ -87,6 +87,12 @@ def manual_variable_initialization(value):
     _MANUAL_VAR_INIT = value
 
 
+'''
+    这里很重要！
+    _GRAPH_LEARNING_PHASES维持着全局的learning_phase值，生成新graph后第一次调用
+    这个函数就会给这个函数设置一个learning_phase, 控制当前模式是Test模式还是Training模式
+    这是一个placeholder
+'''
 def learning_phase():
     """Returns the learning phase flag.
 
@@ -104,7 +110,7 @@ def learning_phase():
         _GRAPH_LEARNING_PHASES[graph] = phase
     return _GRAPH_LEARNING_PHASES[graph]
 
-
+# 手动设置learning_phase
 def set_learning_phase(value):
     """Sets the learning phase to a fixed value.
 
@@ -2069,7 +2075,12 @@ def print_tensor(x, message=''):
 
 
 # GRAPH MANIPULATION
-
+'''
+    Function是keras的核心类：
+    计算keras forward的时候，需要调用f(X_batch),这里的f就是Function
+    当调用f()的时候，默认调用Function.__call__()函数，在这个函数中
+    把input作为placeholder，把output当做run的tensor，实际执行tensorflow的sess.run()的地方所在
+'''
 class Function(object):
     """Runs a computation graph.
 
@@ -2445,6 +2456,9 @@ def in_train_phase(x, alt, training=None):
         Either `x` or `alt` based on the `training` flag.
         the `training` flag defaults to `K.learning_phase()`.
     """
+
+    #当training被指定的时候，不会根据是调用fit还是evaluate决定learning_phase
+    #
     if training is None:
         training = learning_phase()
         uses_learning_phase = True

@@ -530,6 +530,32 @@ class Sequential(Model):
             self.build()
         return self.model.call(inputs, mask)
 
+    '''
+        序贯模型是函数式模型的一个特殊形式
+        
+        ```python
+        model = Sequential()
+        model.add(Dense(32, input_shape=(500,)))
+        model.add(Dense(10, activation='softmax'))
+        model.compile(optimizer='rmsprop',
+                      loss='categorical_crossentropy',
+                      metrics=['accuracy'])
+        ```
+        
+        贯穿式模型
+        
+        ```python
+        inputs = Input(shape=(784,))
+
+        x = Dense(64, activation='relu')(inputs)
+        x = Dense(64, activation='relu')(x)
+        predictions = Dense(10, activation='softmax')(x)
+        
+        model = Model(inputs=inputs, outputs=predictions)
+        ```
+        
+        build()函数负责建立把input，output合在一起build成为Model
+    '''
     def build(self, input_shape=None):
         if not self.inputs or not self.outputs:
             raise TypeError('Sequential model cannot be built: model is empty.'

@@ -107,6 +107,12 @@ class Dropout(Layer):
             def dropped_inputs():
                 return K.dropout(inputs, self.rate, noise_shape,
                                  seed=self.seed)
+
+            # 这个函数类似于tensorflow中的tf.cond(cond, f1, f2)
+            # 通过training来判断执行dropped_inputs还是inputs
+            #  - 若是traing == True, 则执行dropped_inputs
+            #  - 若training == False, 则直接返回input
+            #  - 若training is None，返回K.learning_phase()中，每个graph唯一的placeholder
             return K.in_train_phase(dropped_inputs, inputs,
                                     training=training)
         return inputs

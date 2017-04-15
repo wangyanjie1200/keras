@@ -993,8 +993,13 @@ class Model(Container):
             raise RuntimeError('You must compile your model before using it.')
         if self.train_function is None:
             inputs = self._feed_inputs + self._feed_targets + self._feed_sample_weights
+
+            #########################################
+            # 这里K.learning_phase()直接加在inputs的末尾，这样，所有输入其实都是默认有
+            # K.learning_phase这个placeholder
             if self.uses_learning_phase and not isinstance(K.learning_phase(), int):
                 inputs += [K.learning_phase()]
+            #########################################
 
             training_updates = self.optimizer.get_updates(
                 self._collected_trainable_weights,
@@ -1002,6 +1007,11 @@ class Model(Container):
                 self.total_loss)
             updates = self.updates + training_updates
             # Gets loss and metrics. Updates weights at each call.
+            # 实际定义了Keras的forward过程，当feed数据的时候，数据喂给input，产出[loss, acc, ...]
+            # 相当于tensorflow中的
+            # ```
+            # sess.run([loss, metrics1, metrics2], feed_dict={input : x, output : y})
+            # ```
             self.train_function = K.function(inputs,
                                              [self.total_loss] + self.metrics_tensors,
                                              updates=updates,
@@ -1090,7 +1100,7 @@ class Model(Container):
         if verbose:
             callbacks += [cbks.ProgbarLogger()]
         callbacks = cbks.CallbackList(callbacks)
-        out_labels = out_labels or []
+        out_labels = out_labels or [] # 技巧：表示如果out_label==None，那么返回[]，否则返回out_label
 
         # it's possible to callback a different model than self
         # (used by Sequential models)
@@ -1137,15 +1147,18 @@ class Model(Container):
                 batch_logs = {}
                 batch_logs['batch'] = batch_index
                 batch_logs['size'] = len(batch_ids)
+
+                # 一个batch操作
+                #################################################
                 callbacks.on_batch_begin(batch_index, batch_logs)
-                outs = f(ins_batch)
+                outs = f(ins_batch) # out=[loss, metrics1, metrics2 ...]
                 if not isinstance(outs, list):
                     outs = [outs]
                 for l, o in zip(out_labels, outs):
                     batch_logs[l] = o
 
                 callbacks.on_batch_end(batch_index, batch_logs)
-
+                ##################################################
                 if batch_index == len(batches) - 1:  # last batch
                     # validation
                     if do_validation:
@@ -1451,11 +1464,17 @@ class Model(Container):
             val_ins = None
 
         # prepare input arrays and training function
+        # 这里真正将learning_phase置为1(就是后面的[1.])
+        # 因为inputs的最后，在Model._make_train_function里面定义的时候，inputs最后有一个learning_phase的placeholder
+        # 故在feed的时候，最后一个也必须feed这个占位符
+
         if self.uses_learning_phase and not isinstance(K.learning_phase(), int):
             ins = x + y + sample_weights + [1.]
         else:
             ins = x + y + sample_weights
         self._make_train_function()
+
+        # f 是前向forward函数
         f = self.train_function
 
         # prepare display labels
@@ -1519,6 +1538,7 @@ class Model(Container):
             check_batch_axis=False,
             batch_size=batch_size)
         # prepare inputs, delegate logic to _test_loop
+        # 这里与fit正好相反，给最后一个placeholder喂0，表示测试阶段
         if self.uses_learning_phase and not isinstance(K.learning_phase(), int):
             ins = x + y + sample_weights + [0.]
         else:

@@ -499,6 +499,27 @@ class Layer(object):
         """
         return inputs
 
+    '''
+        函数式模型的关键
+        
+        ```
+            class A:
+                def __call__(x):
+                    return 2 * x
+        ```
+        这样定义以后，A既可以直接当做对象使用，也可当做函数使用
+        >>> a = A()
+        >>> a(3)
+        
+        out[1]:
+        6
+        
+        本函数其实是包装了 Model.call()函数，这样子类可以直接重写call方法，而call方法负责
+        - 检测输入是否合法，shape，dtype等
+        - 调用call方法
+        - build模型
+        等函数的公用方法
+    '''
     def __call__(self, inputs, **kwargs):
         """Wrapper around self.call(), for handling internal references.
 
@@ -1190,6 +1211,8 @@ class Layer(object):
         if hasattr(self, 'dtype'):
             config['dtype'] = self.dtype
         return config
+
+
     '''
         from_config是有dict转换为object的方法，
         只通过config={'key' : value}的形式就可以调用
@@ -1860,6 +1883,7 @@ class Container(Layer):
         losses += self.get_losses_for(None)
         return losses
 
+    # 对于一个Model来说，在他的outputs中，只要有一个的使用了learning_phase那么整个Model就使用learning_phase
     @property
     def uses_learning_phase(self):
         return any([x._uses_learning_phase for x in self.outputs])
