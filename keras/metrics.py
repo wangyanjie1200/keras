@@ -55,6 +55,17 @@ def deserialize(name, custom_objects=None):
                                     printable_module_name='metric function')
 
 
+'''
+    这里是一个小技巧，能够实现如下的代码：
+    
+    ```python
+        model.compile(..., metrics=['acc'])
+    ```
+    
+    中metrics既可以传字符串，又可以传K.Function
+    若keras是字符串，在这里deserialize,
+    若keras是可调用函数，直接返回
+'''
 def get(identifier):
     if isinstance(identifier, six.string_types):
         identifier = str(identifier)

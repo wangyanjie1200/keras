@@ -149,7 +149,11 @@ outputs_dict = dict([(layer.name, layer.output) for layer in model.layers])
 
 # the gram matrix of an image tensor (feature-wise outer product)
 
-
+# Gram矩阵的计算：
+# 如特征图的结构是 F = [w, h, C]
+# 将w, h拉平得到 A = [w*h, C】
+# 将A^T * A 得到C*C的特征矩阵，Gram[i, j]表示F特征图中，i特征图与j特征图的内积
+# Gram矩阵是一种很好的代表图像风格的计算方法
 def gram_matrix(x):
     assert K.ndim(x) == 3
     if K.image_data_format() == 'channels_first':
@@ -164,7 +168,7 @@ def gram_matrix(x):
 # It is based on the gram matrices (which capture style) of
 # feature maps from the style reference image
 # and from the generated image
-
+# 风格loss是对求两个特诊图Gram矩阵后对Gram矩阵做了一个带正则的欧几里得距离
 
 def style_loss(style, combination):
     assert K.ndim(style) == 3
@@ -178,7 +182,7 @@ def style_loss(style, combination):
 # an auxiliary loss function
 # designed to maintain the "content" of the
 # base image in the generated image
-
+# 欧几里得距离
 
 def content_loss(base, combination):
     return K.sum(K.square(combination - base))
@@ -186,7 +190,12 @@ def content_loss(base, combination):
 # the 3rd loss function, total variation loss,
 # designed to keep the generated image locally coherent
 
-
+# 施加全变差正则， 用于生成的图片更加平滑自然
+# 本质是计算两个窗口内容的差值
+# 1. 比原图片小1个像素最左上角的的滑动窗口A
+# 2. A向右滑动1个像素得到B
+# 3. A想下滑动1个像素得到C
+# 4. 计算pow((A-B) + (A-C), 1.25)
 def total_variation_loss(x):
     assert K.ndim(x) == 4
     if K.image_data_format() == 'channels_first':
@@ -202,22 +211,33 @@ loss = K.variable(0.)
 layer_features = outputs_dict['block4_conv2']
 base_image_features = layer_features[0, :, :, :]
 combination_features = layer_features[2, :, :, :]
+
+# Content loss是直接对base_image的某层特征和combination_image的某层特征做欧几里得距离得到
 loss += content_weight * content_loss(base_image_features,
                                       combination_features)
 
 feature_layers = ['block1_conv1', 'block2_conv1',
                   'block3_conv1', 'block4_conv1',
                   'block5_conv1']
+# 风格loss是多个风格层feature_layers的风格loss总和
 for layer_name in feature_layers:
     layer_features = outputs_dict[layer_name]
     style_reference_features = layer_features[1, :, :, :]
     combination_features = layer_features[2, :, :, :]
     sl = style_loss(style_reference_features, combination_features)
     loss += (style_weight / len(feature_layers)) * sl
+
+# 最终的loss = content_loss + style_loss + total_variation_loss
+# 分别是：
+# - 内容loss
+# - 风格loss
+# - 全变差loss
 loss += total_variation_weight * total_variation_loss(combination_image)
 
 # get the gradients of the generated image wrt the loss
+# 获取总loss对combination_image的梯度
 grads = K.gradients(loss, combination_image)
+
 
 outputs = [loss]
 if isinstance(grads, (list, tuple)):
@@ -225,6 +245,7 @@ if isinstance(grads, (list, tuple)):
 else:
     outputs.append(grads)
 
+# 定义函数，输入为噪声图片combination_image，输出是[loss, grads]
 f_outputs = K.function([combination_image], outputs)
 
 
@@ -233,6 +254,7 @@ def eval_loss_and_grads(x):
         x = x.reshape((1, 3, img_nrows, img_ncols))
     else:
         x = x.reshape((1, img_nrows, img_ncols, 3))
+    #调用 f_outputs，得到loss和grad
     outs = f_outputs([x])
     loss_value = outs[0]
     if len(outs[1:]) == 1:

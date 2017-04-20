@@ -214,6 +214,8 @@ class BaseLogger(Callback):
 
         for k, v in logs.items():
             if k in self.totals:
+                # v是某个metrics的值，如acc的值是0.83，把0.83*batch_size
+                # 代表预测对的个数
                 self.totals[k] += v * batch_size
             else:
                 self.totals[k] = v * batch_size
@@ -223,6 +225,7 @@ class BaseLogger(Callback):
             for k in self.params['metrics']:
                 if k in self.totals:
                     # Make value available to next callbacks.
+                    # 每个epoch结束以后看到的最后metrics是先前看到的metrics的平均值
                     logs[k] = self.totals[k] / self.seen
 
 
